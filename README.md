@@ -331,6 +331,20 @@ PING 8.8.8.8 (8.8.8.8) from 192.168.86.116 wlan0: 56(84) bytes of data.
 3 packets transmitted, 3 received, 0% packet loss, time 2002ms
 rtt min/avg/max/mdev = 16.075/20.138/23.422/3.049 ms
 ```
+### share internet connection
+```plain
+docker run -d --name wifi --rm --privileged --net host -v $(pwd)/wificfg.json:/cfg/wificfg.json  cjimti/iotwifi
+
+iptables -I FORWARD -o uap0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+iptables -I FORWARD -s 192.168.0.0/16 -j ACCEPT
+iptables -t nat -I POSTROUTING -s 192.168.0.0/16 \! -d 192.168.0.0/16 -j MASQUERADE
+sleep 10
+docker exec  wifi /bin/sh -c 'pkill dnsmasq; dnsmasq --no-hosts --keep-in-foreground --log-queries --address=/wifi/192.168.27.1 --dhcp-range=192.168.27.100,192.168.27.150,1h --dhcp-vendorclass=set:device,IoT --dhcp-authoritative --log-facility=-'
+docker stop wifi
+iptables -D FORWARD -o uap0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+iptables -D FORWARD -s 192.168.0.0/16 -j ACCEPT
+iptables -t nat -D POSTROUTING -s 192.168.0.0/16 \! -d 192.168.0.0/16 -j MASQUERADE
+```
 
 ### Conclusion
 
